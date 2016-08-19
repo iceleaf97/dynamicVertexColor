@@ -3,10 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        body {
+            color: #ffffff;
+            font-family:Monospace;
+            font-size:13px;
+            text-align:center;
+            font-weight: bold;
+
+            background-color: #000000;
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
+<script src="js/three.min.js"></script>
 
-hello dynamicVertexColor!
+<div id="info">PointCloud with Custom, Dynamic Attribute</div>
+
+<script type="x-shader/x-vertex" id="vertexshader">
+
+    attribute float alpha;
+
+    varying float vAlpha;
+
+    void main() {
+
+        vAlpha = alpha;
+
+        vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+        gl_PointSize = 8.0;
+
+        gl_Position = projectionMatrix * mvPosition;
+
+    }
+
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentshader">
+
+    uniform vec3 color;
+
+    varying float vAlpha;
+
+    void main() {
+
+        gl_FragColor = vec4( color, vAlpha );
+
+    }
+
+</script>
+<script>
+    // PointCloud with Custom, Dynamic Attribute
+
+    var renderer, scene, camera, cloud, uniforms;
+
+    init();
+    animate();
+
+    function init() {
+
+        // renderer
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        document.body.appendChild( renderer.domElement );
+
+        // scene
+        scene = new THREE.Scene();
+
+        //camera
+        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera.position.z = 400;
+        camera.position.y = 50;
+        camera.position.x = 50;
+
+        // point cloud geometry
+        var geometry = new THREE.SphereBufferGeometry( 100, 20, 20 );
+
+        // add an attribute
+        var numVertices = geometry.attributes.position.count;
+        //console.log(numVertices);
+       // console.log(geometry.attributes.position.array); //用console.log看可知，頂點訊息藏在position.array裡
+        var alphas = new Float32Array( numVertices * 1 ); // 1 values per vertex
+        //console.log(alphas);
+        for( var i = 0; i < numVertices; i ++ ) {
+
+            // set alpha randomly
+            alphas[ i ] = 1;
+
+        }
+
+        geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+
+        // uniforms
+        uniforms = {
+
+            color: { type: "c", value: new THREE.Color( 0x00ff00 ) },
+
+        };
+
+        // point cloud material
+        var shaderMaterial = new THREE.ShaderMaterial( {
+
+            uniforms:       uniforms,
+            vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+            transparent:    true
+
+        });
+
+        // point cloud
+        cloud = new THREE.Points( geometry, shaderMaterial );
+
+        scene.add( cloud );
+        console.log(cloud.geometry.attributes.alpha.array);
+        console.log(cloud.geometry.attributes.alpha.count);
+        console.log(cloud.geometry.attributes.position.array);
+        console.log(cloud.geometry.attributes.position.count);
+
+
+
+
+        var vertexPos = cloud.geometry.attributes.position.array;
+
+        for(var i=1; i<cloud.geometry.attributes.position.count*3; i += 3){
+
+            if(vertexPos[i]>0){
+                console.log(vertexPos[i]);
+
+                cloud.geometry.attributes.alpha.array[(i-1)/3] = 0.05;
+
+
+            }
+
+        }
+
+        /*
+        var alphas0 = cloud.geometry.attributes.alpha;
+        var count = alphas0.count;
+        for(var i=0; i<count/2;i++){
+            alphas0.array[ i ] =0.1;
+
+            if ( alphas0.array[ i ] < 0.01 ) {
+                alphas0.array[ i ] = 1.0;
+            }
+        }
+        */
+
+        alphas.needsUpdate = true; // important!
+
+
+        /*
+         for( var i = 0; i < count; i ++ ) {
+
+         // dynamically change alphas
+         alphas.array[ i ] *= 0.95;
+
+         if ( alphas.array[ i ] < 0.01 ) {
+         alphas.array[ i ] = 1.0;
+         }
+
+         }
+         */
+
+    }
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+
+        render();
+
+    }
+
+    function render() {
+
+        //cloud.rotation.x += 0.005;
+       // cloud.rotation.y += 0.005;
+
+        renderer.render( scene, camera );
+
+    }
+
+</script>
+
+
 
 </body>
 </html>
